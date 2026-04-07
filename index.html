@@ -68,9 +68,9 @@
     scene.background = new THREE.Color(0x111111);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    // Adjusted camera so you can see the whole platform better
-    camera.position.set(-25, 30, 50);
-    camera.lookAt(-25, 0, 0);
+    // Camera is now perfectly centered at 0
+    camera.position.set(0, 30, 50);
+    camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true }); 
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -102,33 +102,32 @@
     );
     world.addContactMaterial(contactMaterial);
 
-    // Invisible Catcher Floor (moved way down so it doesn't block the platform)
     const floorShape = new CANNON.Box(new CANNON.Vec3(50, 1, 50));
     const floorBody = new CANNON.Body({ mass: 0, material: physicsMaterial });
     floorBody.addShape(floorShape);
     floorBody.position.set(0, -50, 0);
     world.addBody(floorBody);
 
-    // --- NEW PLATFORM PHYSICS ---
-    // 1. The Main White Floor
+    // --- ALL PLATFORM PHYSICS CENTERED AT 0 ---
+    // 1. Main White Floor
     const platformShape = new CANNON.Box(new CANNON.Vec3(15, 0.5, 15)); 
     const platformBody = new CANNON.Body({ mass: 0, material: physicsMaterial });
     platformBody.addShape(platformShape);
-    platformBody.position.set(-25, -6.5, 0); 
+    platformBody.position.set(0, -6.5, 0); 
     world.addBody(platformBody);
 
-    // 2. The Left Invisible Wall
+    // 2. Left Invisible Wall
     const leftWallShape = new CANNON.Box(new CANNON.Vec3(1, 5, 15)); 
     const leftWallBody = new CANNON.Body({ mass: 0, material: physicsMaterial });
     leftWallBody.addShape(leftWallShape);
-    leftWallBody.position.set(-40, -2, 0); 
+    leftWallBody.position.set(-15, -2, 0); 
     world.addBody(leftWallBody);
 
-    // 3. The Right Invisible Wall
+    // 3. Right Invisible Wall
     const rightWallShape = new CANNON.Box(new CANNON.Vec3(1, 5, 15)); 
     const rightWallBody = new CANNON.Body({ mass: 0, material: physicsMaterial });
     rightWallBody.addShape(rightWallShape);
-    rightWallBody.position.set(-10, -2, 0); 
+    rightWallBody.position.set(15, -2, 0); 
     world.addBody(rightWallBody);
 
     // ==========================================
@@ -154,7 +153,8 @@
             });
 
             customModel.scale.set(1.3, 1.3, 1.3); 
-            customModel.position.set(-25, -5, 0); 
+            // This -35 offset makes your off-center model sit visually at 0!
+            customModel.position.set(-35, -5, 0); 
             customModel.rotation.x = -Math.PI / 2;
             scene.add(customModel);
         });
@@ -171,7 +171,8 @@
     const coinShape = new CANNON.Cylinder(1.2, 1.2, 0.3, 16);
 
     function dropCoin() {
-        const dropCenter = -25; // Centered over your newly positioned model
+        // Drop center is perfectly normal at 0
+        const dropCenter = 0; 
         
         const randomX = dropCenter + (Math.random() - 0.5) * 15; 
         const randomZ = (Math.random() - 0.5) * 15;
@@ -221,7 +222,6 @@
                 coin.mesh.quaternion.copy(coin.body.quaternion);
             }
 
-            // Removes coins once they fall off the front or back
             if (coin.body.position.y < -20) {
                 world.removeBody(coin.body);
                 scene.remove(coin.mesh);
