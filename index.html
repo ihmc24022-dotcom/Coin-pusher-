@@ -68,7 +68,6 @@
     scene.background = new THREE.Color(0x111111);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    // Backed the camera up a little bit to a middle ground
     camera.position.set(0, 30, 50);
     camera.lookAt(0, 0, 0);
 
@@ -132,13 +131,11 @@
                 }
             });
 
-            // Reduced the scale from 2.0 to 1.3 (a nice middle ground)
             customModel.scale.set(1.3, 1.3, 1.3); 
             
-            // Adjusted position slightly to keep it centered
-            customModel.position.set(-20, -5, 0); 
+            // SLID THE MODEL FURTHER LEFT TO CENTER IT (-35 instead of -20)
+            customModel.position.set(-35, -5, 0); 
             
-            // Rotate the model 90 degrees up
             customModel.rotation.x = -Math.PI / 2;
 
             scene.add(customModel);
