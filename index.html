@@ -7,29 +7,66 @@
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+  
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; background-color: #050505; color: white; font-family: 'Segoe UI', sans-serif; user-select: none; }
-    #canvas-container { width: 100vw; height: 100vh; display: block; }
-    #ui { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; text-shadow: 2px 2px 2px rgba(0,0,0,0.8); }
-    h1 { margin: 0; font-size: 1.5rem; color: #ff00ff; }
-    p { margin: 2px 0; font-size: 0.9rem; color: #00ffff; }
-    #coin-counter { margin-top: 5px; font-size: 1rem; color: #ffd700; }
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      background-color: #050505; 
+      color: white; 
+      font-family: 'Segoe UI', sans-serif; 
+      user-select: none; 
+    }
+    #canvas-container { 
+      width: 100vw; 
+      height: 100vh; 
+      display: block; 
+    }
+    #ui { 
+      position: absolute; 
+      top: 10px; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      text-align: center; 
+      pointer-events: none; 
+      text-shadow: 2px 2px 2px rgba(0,0,0,0.8); 
+    }
+    h1 { 
+      margin: 0; 
+      font-size: 1.5rem; 
+      color: #ff00ff; 
+    }
+    p { 
+      margin: 2px 0; 
+      font-size: 0.9rem; 
+      color: #00ffff; 
+    }
+    #coin-counter { 
+      margin-top: 5px; 
+      font-size: 1rem; 
+      color: #ffd700; 
+    }
   </style>
 </head>
 <body>
+
   <div id="canvas-container"></div>
   <div id="ui">
     <h1>Custom Tinkercad Pusher</h1>
-    <p>Tap to drop coins!</p>
+    <p>Tap the screen to drop coins!</p>
     <div id="coin-counter">Active Coins: 0</div>
   </div>
 
   <script>
+    // ==========================================
+    // 1. SETUP GRAPHICS (THREE.js)
+    // ==========================================
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x111111);
+
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 40, 60);
     camera.lookAt(0, 0, 0);
@@ -37,90 +74,154 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true }); 
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
     document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
     dirLight.position.set(20, 50, 20);
+    dirLight.castShadow = true;
     scene.add(dirLight);
 
+    // ==========================================
+    // 2. SETUP PHYSICS (CANNON.js)
+    // ==========================================
     const world = new CANNON.World();
     world.gravity.set(0, -20, 0);
     world.broadphase = new CANNON.SAPBroadphase(world); 
+    world.solver.iterations = 10; 
     world.allowSleep = true; 
 
     const physicsMaterial = new CANNON.Material("standard");
-    world.addContactMaterial(new CANNON.ContactMaterial(physicsMaterial, physicsMaterial, { friction: 0.2, restitution: 0.0 }));
+    const contactMaterial = new CANNON.ContactMaterial(
+        physicsMaterial, physicsMaterial,
+        { friction: 0.2, restitution: 0.0 } 
+    );
+    world.addContactMaterial(contactMaterial);
 
+    // Invisible Floor (keeps coins from falling forever)
+    const floorShape = new CANNON.Box(new CANNON.Vec3(50, 1, 50));
     const floorBody = new CANNON.Body({ mass: 0, material: physicsMaterial });
-    floorBody.addShape(new CANNON.Box(new CANNON.Vec3(50, 1, 50)));
+    floorBody.addShape(floorShape);
     floorBody.position.set(0, -5, 0);
     world.addBody(floorBody);
 
     // ==========================================
-    // PASTE YOUR HOSTED URLs HERE LATER:
+    // 3. LOAD YOUR HOSTED TINKERCAD MODEL
     // ==========================================
-    const mtlUrl = 'YOUR_MTL_URL_HERE'; 
-    const objUrl = 'YOUR_OBJ_URL_HERE'; 
+    const mtlUrl = 'https://ihmc24022-dotcom.github.io/Coin-pusher-/obj.mtl'; 
+    const objUrl = 'https://ihmc24022-dotcom.github.io/Coin-pusher-/tinker.obj'; 
 
     const mtlLoader = new THREE.MTLLoader();
     mtlLoader.load(mtlUrl, function (materials) {
         materials.preload();
+        
         const objLoader = new THREE.OBJLoader();
         objLoader.setMaterials(materials);
+        
         objLoader.load(objUrl, function (customModel) {
+            
+            customModel.traverse(function (child) {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+
+            // Adjust size and position of your model here if needed
             customModel.scale.set(0.8, 0.8, 0.8); 
             customModel.position.set(-20, -5, -5); 
             scene.add(customModel);
+
         });
     });
 
+    // ==========================================
+    // 4. COIN MECHANICS
+    // ==========================================
     const coins = [];
     const counterElement = document.getElementById('coin-counter');
-    const coinGeom = new THREE.CylinderGeometry(1.2, 1.2, 0.3, 16); 
-    const coinMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 });
+    
+    const coinGeometry = new THREE.CylinderGeometry(1.2, 1.2, 0.3, 16); 
+    const coinMaterial = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 });
     const coinShape = new CANNON.Cylinder(1.2, 1.2, 0.3, 16);
 
     function dropCoin() {
-        const mesh = new THREE.Mesh(coinGeom, coinMat);
+        // Drop coordinates
+        const randomX = (Math.random() - 0.5) * 15; 
+        const randomZ = (Math.random() - 0.5) * 15;
+
+        // Visuals
+        const mesh = new THREE.Mesh(coinGeometry, coinMaterial);
+        mesh.castShadow = true; 
+        mesh.receiveShadow = true; 
         scene.add(mesh);
 
+        // Physics
         const body = new CANNON.Body({ mass: 1, material: physicsMaterial });
         const q = new CANNON.Quaternion();
-        q.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+        q.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2); // Make coin flat
         body.addShape(coinShape, new CANNON.Vec3(0, 0, 0), q);
+
         body.fixedRotation = true;
+        body.updateMassProperties(); 
+
         body.allowSleep = true;
         body.sleepSpeedLimit = 0.5; 
         body.sleepTimeLimit = 0.2;  
-        body.position.set((Math.random() - 0.5) * 15, 30, (Math.random() - 0.5) * 15);
+        body.linearDamping = 0.6; 
         
+        body.position.set(randomX, 30, randomZ);
+
         world.addBody(body);
         coins.push({ mesh, body });
+        
         counterElement.innerText = `Active Coins: ${coins.length}`;
     }
 
+    // Tap to drop!
     window.addEventListener('pointerdown', dropCoin);
 
+    // ==========================================
+    // 5. ANIMATION LOOP
+    // ==========================================
     const timeStep = 1 / 60;
+
     function animate() {
         requestAnimationFrame(animate);
         world.step(timeStep);
+
         for (let i = coins.length - 1; i >= 0; i--) {
             const coin = coins[i];
+            
             if (coin.body.sleepState !== CANNON.Body.SLEEPING) {
                 coin.mesh.position.copy(coin.body.position);
                 coin.mesh.quaternion.copy(coin.body.quaternion);
             }
+
+            // Remove coins if they fall off the map
             if (coin.body.position.y < -20) {
                 world.removeBody(coin.body);
                 scene.remove(coin.mesh);
+                coin.mesh.geometry.dispose();
                 coins.splice(i, 1);
                 counterElement.innerText = `Active Coins: ${coins.length}`;
             }
         }
+
         renderer.render(scene, camera);
     }
+
+    // Handle screen resizing
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight; 
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
     animate();
   </script>
 </body>
