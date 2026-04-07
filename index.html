@@ -110,6 +110,17 @@
     world.addBody(floorBody);
 
     // ==========================================
+    // NEW: Physics Box for your Tinkercad Platform
+    // ==========================================
+    // These numbers (15, 2, 15) represent the half-width, half-height, and half-depth.
+    // Tweak these if the invisible collision box doesn't perfectly match your 3D model!
+    const platformShape = new CANNON.Box(new CANNON.Vec3(15, 2, 15)); 
+    const platformBody = new CANNON.Body({ mass: 0, material: physicsMaterial });
+    platformBody.addShape(platformShape);
+    platformBody.position.set(-25, -5, 0); // Matches the visual model position
+    world.addBody(platformBody);
+
+    // ==========================================
     // 3. LOAD YOUR HOSTED TINKERCAD MODEL
     // ==========================================
     const mtlUrl = 'https://ihmc24022-dotcom.github.io/Coin-pusher-/obj.mtl'; 
@@ -133,7 +144,7 @@
 
             customModel.scale.set(1.3, 1.3, 1.3); 
             
-            // MOVED THE MODEL A LITTLE RIGHT (-25 instead of -35)
+            // Visual model positioned at X: -25
             customModel.position.set(-25, -5, 0); 
             
             customModel.rotation.x = -Math.PI / 2;
@@ -154,7 +165,8 @@
     const coinShape = new CANNON.Cylinder(1.2, 1.2, 0.3, 16);
 
     function dropCoin() {
-        const randomX = (Math.random() - 0.5) * 15; 
+        // Adjusted randomX so coins drop directly above the platform at -25
+        const randomX = -25 + (Math.random() - 0.5) * 15; 
         const randomZ = (Math.random() - 0.5) * 15;
 
         const mesh = new THREE.Mesh(coinGeometry, coinMaterial);
@@ -202,6 +214,7 @@
                 coin.mesh.quaternion.copy(coin.body.quaternion);
             }
 
+            // Remove coins if they fall way below the platform
             if (coin.body.position.y < -20) {
                 world.removeBody(coin.body);
                 scene.remove(coin.mesh);
