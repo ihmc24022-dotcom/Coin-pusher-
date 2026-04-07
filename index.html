@@ -131,9 +131,13 @@
                 }
             });
 
-            // Adjust size and position of your model here if needed
+            // Adjust size, position, and rotation of your model here
             customModel.scale.set(0.8, 0.8, 0.8); 
             customModel.position.set(-20, -5, -5); 
+            
+            // Rotate the model 90 degrees up!
+            customModel.rotation.x = -Math.PI / 2;
+
             scene.add(customModel);
 
         });
